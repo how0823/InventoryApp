@@ -3,8 +3,16 @@ import sqlite3
 import pandas as pd
 from datetime import date
 from io import BytesIO
+from supabase import create_client
 
 DB_NAME = "inventory.db"
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+TABLE_NAME = "inventory"
+
 RAW_SAFETY_STOCK = 300000
 
 def fmt(x):
@@ -12,43 +20,42 @@ def fmt(x):
 RAW_BEGIN = 100000        # 100000
 FINISHED_BEGIN = 100000   # 100000
 
+
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cur = conn.cursor()
+    pass
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT,
-        date TEXT,
-        order_no TEXT,
-        qty INTEGER,
-        return_qty INTEGER DEFAULT 0,
-        defect_qty INTEGER DEFAULT 0,
-        memo TEXT
-    )
-    """)
-
-    conn.commit()
-    conn.close()
 
 def insert_data(type_, date_, order_no, qty, return_qty=0, defect_qty=0, memo=""):
-    conn = sqlite3.connect(DB_NAME)
-    cur = conn.cursor()
+    data = {
+        "type": type_,
+        "date": str(date_),
+        "order_no": order_no,
+        "qty": int(qty),
+        "return_qty": int(return_qty),
+        "defect_qty": int(defect_qty),
+        "memo": memo
+    }
 
-    cur.execute("""
-    INSERT INTO transactions 
-    (type, date, order_no, qty, return_qty, defect_qty, memo)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (type_, str(date_), order_no, qty, return_qty, defect_qty, memo))
+    supabase.table(TABLE_NAME).insert(data).execute()
 
-    conn.commit()
-    conn.close()
 
 def load_data():
-    conn = sqlite3.connect(DB_NAME)
-    df = pd.read_sql_query("SELECT * FROM transactions ORDER BY id DESC", conn)
-    conn.close()
+    response = (
+        supabase
+        .table(TABLE_NAME)
+        .select("*")
+        .order("id", desc=True)
+        .execute()
+    )
+
+    df = pd.DataFrame(response.data)
+
+    if df.empty:
+        df = pd.DataFrame(columns=[
+            "id", "type", "date", "order_no",
+            "qty", "return_qty", "defect_qty", "memo"
+        ])
+
     return df
 
 def create_excel(df):
@@ -65,36 +72,22 @@ def create_excel(df):
 
 def update_data(id_, type_, date_, order_no, qty,
                 return_qty=0, defect_qty=0, memo=""):
+    data = {
+        "type": type_,
+        "date": str(date_),
+        "order_no": order_no,
+        "qty": int(qty),
+        "return_qty": int(return_qty),
+        "defect_qty": int(defect_qty),
+        "memo": memo
+    }
 
-    conn = sqlite3.connect(DB_NAME)
-    cur = conn.cursor()
-
-    cur.execute("""
-    UPDATE transactions
-    SET type = ?, date = ?, order_no = ?, qty = ?,
-        return_qty = ?, defect_qty = ?, memo = ?
-    WHERE id = ?
-    """, (
-        type_, str(date_), order_no,
-        qty, return_qty,
-        defect_qty, memo, id_
-    ))
-
-    conn.commit()
-    conn.close()
+    supabase.table(TABLE_NAME).update(data).eq("id", int(id_)).execute()
+    
 
 
 def delete_data(id_):
-    conn = sqlite3.connect(DB_NAME)
-    cur = conn.cursor()
-
-    cur.execute(
-        "DELETE FROM transactions WHERE id = ?",
-        (id_,)
-    )
-
-    conn.commit()
-    conn.close()
+    supabase.table(TABLE_NAME).delete().eq("id", int(id_)).execute()
 
 init_db()
 
