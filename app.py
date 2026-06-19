@@ -204,6 +204,9 @@ elif menu == "입고 입력":
         )
 
         schedule_df = selected_order_df[["입고요청일자", "qty"]].copy()
+        schedule_df["입고요청일자"] = pd.to_datetime(schedule_df["입고요청일자"])
+        schedule_df = schedule_df.sort_values("입고요청일자")
+
         schedule_df = schedule_df.rename(columns={
             "qty": "요청수량"
         })
