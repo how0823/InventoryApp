@@ -469,10 +469,10 @@ elif menu == "입고현황":
                     hide_index=True
                 )
 
-                        over_count = (result["상태"] == "초과입고").sum()
-                        if over_count > 0:
-                            over_qty = (result[result["미입고량"] < 0]["미입고량"].abs()).sum()
-                            st.warning(f"⚠ 초과입고 {over_count}건 / 초과수량 {fmt(over_qty)} EA")
+                over_count = (result["상태"] == "초과입고").sum()
+                if over_count > 0:
+                    over_qty = (result[result["미입고량"] < 0]["미입고량"].abs()).sum()
+                    st.warning(f"⚠ 초과입고 {over_count}건 / 초과수량 {fmt(over_qty)} EA")
 
 elif menu == "재고현황":
     st.header("재고현황 조회")
