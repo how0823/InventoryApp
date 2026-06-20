@@ -407,10 +407,72 @@ elif menu == "입고현황":
                 hide_index=True
             )
 
-            over_count = (result["상태"] == "초과입고").sum()
-            if over_count > 0:
-                over_qty = (result[result["미입고량"] < 0]["미입고량"].abs()).sum()
-                st.warning(f"⚠ 초과입고 {over_count}건 / 초과수량 {fmt(over_qty)} EA")
+            st.divider()
+
+            order_list = sorted(result["order_no"].unique())
+
+            selected_order = st.selectbox(
+                "상세조회할 발주NO 선택",
+                order_list
+            )
+
+            detail_order = result[result["order_no"] == selected_order].iloc[0]
+
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric(
+                "총발주량",
+                fmt(detail_order["총발주량"])
+            )
+
+            col2.metric(
+                "누적입고량",
+                fmt(detail_order["누적입고량"])
+            )
+
+            col3.metric(
+                "미입고량",
+                fmt(detail_order["미입고량"])
+            )
+
+            st.subheader(f"{selected_order} 입고내역")
+
+            receive_detail = receive_df[
+                receive_df["order_no"] == selected_order
+            ].copy()
+
+            if receive_detail.empty:
+                st.info("입고내역이 없습니다.")
+            else:
+                receive_detail["실입고량"] = (
+                    receive_detail["qty"]
+                    - receive_detail["return_qty"]
+                )
+
+                display_detail = receive_detail[
+                    ["date", "qty", "return_qty", "실입고량"]
+                ].copy()
+
+                display_detail.columns = [
+                    "입고일자",
+                    "입고수량",
+                    "반품수량",
+                    "실입고량"
+                ]
+
+                for col in ["입고수량", "반품수량", "실입고량"]:
+                    display_detail[col] = display_detail[col].apply(fmt)
+
+                st.dataframe(
+                    display_detail,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                        over_count = (result["상태"] == "초과입고").sum()
+                        if over_count > 0:
+                            over_qty = (result[result["미입고량"] < 0]["미입고량"].abs()).sum()
+                            st.warning(f"⚠ 초과입고 {over_count}건 / 초과수량 {fmt(over_qty)} EA")
 
 elif menu == "재고현황":
     st.header("재고현황 조회")
