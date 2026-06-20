@@ -91,7 +91,7 @@ def delete_data(id_):
 
 init_db()
 
-st.title("1개 품목 재고관리 TEST")
+st.title("TBP 재고관리 APP")
 
 menu = st.sidebar.radio(
     "메뉴 선택",
