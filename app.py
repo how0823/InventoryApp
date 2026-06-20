@@ -253,8 +253,8 @@ elif menu == "생산 입력":
     st.header("생산 입력")
 
     prod_date = st.date_input("생산날짜", date.today())
-    qty = st.number_input("생산수량", min_value=0, step=1)
-    st.caption(f"생산수량: {fmt(qty)} EA")
+    qty = st.number_input("양품수량", min_value=0, step=1)
+    st.caption(f"양품수량: {fmt(qty)} EA")
     defect_qty = st.number_input("불량수량", min_value=0, step=1)
     st.caption(f"불량수량: {fmt(defect_qty)} EA")
 
