@@ -401,7 +401,7 @@ elif menu == "재고현황":
             st.error(
                 f"⚠ 원재료 재고 부족: 현재고 {fmt(raw_end)} EA / 안전재고 {fmt(RAW_SAFETY_STOCK)} EA"      
             )      
-        finished_end = finished_start + period_prod - period_defect - period_ship
+        finished_end = finished_start + period_prod - period_ship
 
         st.subheader("원재료 재고")
 
@@ -424,7 +424,7 @@ elif menu == "재고현황":
             "구분": ["기초재고", "양품생산", "출하", "기말재고"],
             "수량(EA)": [
                 fmt(finished_start),
-                fmt(period_prod - period_defect),
+                fmt(period_prod),
                 fmt(period_ship),
                 fmt(finished_end)
             ]
