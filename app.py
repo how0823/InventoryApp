@@ -95,7 +95,7 @@ st.title("TBP 재고관리 APP")
 
 menu = st.sidebar.radio(
     "메뉴 선택",
-    ["발주 입력", "입고 입력", "생산 입력", "출하 입력", "발주현황", "재고현황", "입력이력 관리", "현황 조회"]
+    ["발주 입력", "입고 입력", "생산 입력", "출하 입력", "발주현황", "입고현황", "재고현황", "입력이력 관리", "현황 조회"]
 )
 
 if menu == "발주 입력":
@@ -351,6 +351,67 @@ elif menu == "발주현황":
             st.error(f"⚠ 입고 지연 {delayed_count}건 / 지연수량 {fmt(delayed_qty)} EA")
         else:
             st.success("입고 지연 건이 없습니다.")
+
+elif menu == "입고현황":
+    st.header("입고현황")
+
+    df = load_data()
+
+    if df.empty:
+        st.info("입고현황을 표시할 데이터가 없습니다.")
+    else:
+        order_df = df[df["type"] == "발주"].copy()
+        receive_df = df[df["type"] == "입고"].copy()
+
+        if order_df.empty:
+            st.info("등록된 발주정보가 없습니다.")
+        else:
+            order_summary = order_df.groupby("order_no", as_index=False)["qty"].sum()
+            order_summary = order_summary.rename(columns={"qty": "총발주량"})
+
+            if receive_df.empty:
+                receive_summary = pd.DataFrame(columns=["order_no", "누적입고량"])
+            else:
+                receive_df["실입고량"] = receive_df["qty"] - receive_df["return_qty"]
+                receive_summary = receive_df.groupby("order_no", as_index=False)["실입고량"].sum()
+                receive_summary = receive_summary.rename(columns={"실입고량": "누적입고량"})
+
+            result = pd.merge(order_summary, receive_summary, on="order_no", how="left")
+            result["누적입고량"] = result["누적입고량"].fillna(0).astype(int)
+            result["미입고량"] = result["총발주량"] - result["누적입고량"]
+            result["입고율"] = result["누적입고량"] / result["총발주량"]
+
+            def receive_status(row):
+                if row["누적입고량"] == 0:
+                    return "미입고"
+                elif row["누적입고량"] < row["총발주량"]:
+                    return "입고중"
+                elif row["누적입고량"] == row["총발주량"]:
+                    return "완료"
+                else:
+                    return "초과입고"
+
+            result["상태"] = result.apply(receive_status, axis=1)
+
+            display_df = result.copy()
+            display_df["총발주량"] = display_df["총발주량"].apply(fmt)
+            display_df["누적입고량"] = display_df["누적입고량"].apply(fmt)
+            display_df["미입고량"] = display_df["미입고량"].apply(fmt)
+            display_df["입고율"] = result["입고율"].apply(lambda x: f"{x:.1%}")
+
+            display_df = display_df.rename(columns={"order_no": "발주NO"})
+
+            st.dataframe(
+                display_df[["발주NO", "총발주량", "누적입고량", "미입고량", "입고율", "상태"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            over_count = (result["상태"] == "초과입고").sum()
+            if over_count > 0:
+                over_qty = (result[result["미입고량"] < 0]["미입고량"].abs()).sum()
+                st.warning(f"⚠ 초과입고 {over_count}건 / 초과수량 {fmt(over_qty)} EA")
+
 elif menu == "재고현황":
     st.header("재고현황 조회")
 
